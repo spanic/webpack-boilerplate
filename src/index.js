@@ -1,5 +1,4 @@
-// Test import of a JavaScript module
-import { example } from '@/js/example'
+import { IndexedDB } from '@/js/indexedDB'
 
 // Test import of an asset
 import webpackLogo from '@/images/webpack-logo.svg'
@@ -11,16 +10,20 @@ import '@/styles/index.scss'
 const logo = document.createElement('img')
 logo.src = webpackLogo
 
-const heading = document.createElement('h1')
-heading.textContent = example()
-
-// Test a background image url in CSS
-const imageBackground = document.createElement('div')
-imageBackground.classList.add('image')
-
-// Test a public folder asset
-const imagePublic = document.createElement('img')
-imagePublic.src = '/assets/example.png'
-
 const app = document.querySelector('#root')
-app.append(logo, heading, imageBackground, imagePublic)
+app.append(logo)
+
+// ===============================================
+
+window.addEventListener('load', async () => {
+  const formDataDB = await new IndexedDB('formData', 1, (db, oldVersion, newVersion) => {
+    console.log(`Upgrading IndexedDB database from ${oldVersion} to ${newVersion}`)
+
+    switch (oldVersion) {
+      case 0: {
+        const fields = db.createObjectStore('fields', { keyPath: 'name' })
+        fields.createIndex('nameIdx', 'name', { unique: true })
+      }
+    }
+  })
+})
