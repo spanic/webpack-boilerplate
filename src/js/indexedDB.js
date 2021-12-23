@@ -11,7 +11,7 @@ export class IndexedDB {
 
       if (dbUpgradeFn) {
         dbConnection.onupgradeneeded = (event) =>
-          dbUpgradeFn(dbConnection.result, event.oldVersion, event.newVersion)
+          dbUpgradeFn(dbConnection, event.oldVersion, event.newVersion)
       }
 
       dbConnection.onsuccess = () => {
@@ -29,5 +29,53 @@ export class IndexedDB {
         location.reload()
       }
     })
+  }
+
+  update(storeName, value, overwrite = false) {
+    return new Promise((resolve, reject) => {
+      const transaction = this.db.transaction([storeName], 'readwrite')
+      const store = transaction.objectStore(storeName)
+
+      value = Array.isArray(value) ? value : [value]
+      value.forEach((item) => {
+        overwrite ? store.put(item) : store.add(item)
+      })
+
+      transaction.oncomplete = () => {
+        resolve(true)
+      }
+      transaction.onerror = () => {
+        reject(transaction.error)
+      }
+    })
+  }
+
+  fetch(storeName, indexName, lower, upper, callback) {
+    const request = this.getIndex(storeName, indexName).openCursor(this.getKeyBounds(lower, upper))
+
+    request.onsuccess = () => {
+      if (callback) {
+        callback(request.result)
+      }
+    }
+    request.onerror = () => {
+      return request.error
+    }
+  }
+
+  getIndex(storeName, indexName) {
+    const transaction = this.db.transaction([storeName])
+    const store = transaction.objectStore(storeName)
+    return indexName ? store.index(indexName) : store
+  }
+
+  getKeyBounds(lower, upper) {
+    if (lower && upper) {
+      return IDBKeyRange.bound(lower, upper)
+    } else if (lower) {
+      return IDBKeyRange.lowerBound(lower) // greater than or equal to lower
+    } else if (upper) {
+      return IDBKeyRange.upperBound(upper) // less than or equal to upper
+    }
   }
 }
